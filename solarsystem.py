@@ -28,51 +28,39 @@ class Planet:
 
 #defining diff eq
 
-# def f(t,vec):
-aa = []
-t = np.array([i*0.01 for i in range(100)])
-def timestep(planet1,planet2,dt):
+def timestep2(planet,dt):
     
-    A = planet1.pos[0] - planet2.pos[0]
-    B = planet1.pos[1] - planet2.pos[1]
-    dist = np.array([A,B])
-    value = -np.array( [np.sign(A)/dist[0]**2, np.sign(B)/dist[1]**2] )
-    a1 = planet2.mass * value
-    a2 = planet1.mass * value
     
-    planet1.vel += a1*dt
-    planet2.vel += a2*dt
+    r_x = planet[0].pos[0] - planet[1].pos[0]
+    r_y = planet[0].pos[1] - planet[1].pos[1]
+    r = np.sqrt(r_x**2 + r_y**2)
+    cos_theta = r_x/r
+    sin_theta = r_y/r
+    # try:
+    ang = np.array( [cos_theta, sin_theta] )
+    # finally:
+    #     ang = np.array([cos_theta, 0])
+        
+    a1 = -planet[1].mass/(r**2) * ang
+    a2 = planet[0].mass/(r**2) * ang
+    # print (planet2.vel)
+    planet[0].vel += a1*dt
+    planet[1].vel += a2*dt
     
-    planet1.pos += planet1.vel
-    planet2.pos += planet2.vel
-    aa.append(a1[1])
-    print( a1,a2 )
-
-def timestep2(planet1,planet2,dt):
-    
-    dist = np.abs((planet1.pos[0] - planet2.pos[0])**2 + (planet1.pos[1] - planet2.pos[1])**2)
-    vec = np.array([planet1.pos[0] - planet2.pos[0], planet1.pos[1] - planet2.pos[1]])
-    
-    r = (dist + vec)
-    a1 = -2*planet2.mass/(r)
-    a2 = 2*planet1.mass/(r)
-    
-    planet1.vel += a1*dt
-    planet2.vel += a2*dt
-    
-    planet1.pos += planet1.vel
-    planet2.pos += planet2.vel
+    planet[0].pos += planet[0].vel
+    planet[1].pos += planet[1].vel
     
 
 #%%
 plt.close("all")
 sun = Planet(1,(0.0,0.0),(0.0,0.0))
-earth = Planet(1/333000,(10.0,10.0),(0.0,-0.1))
-
+earth = Planet(1,(-10.0,-10.0),(0.0,-0.05)) #1/333000
+planets = [earth,sun]
 fig = plt.figure(0)
 ax = fig.add_subplot(1,1,1)
-zoom = 10
-for i in range(200):
+zoom = 15
+
+for i in range(400):
     
     ax.cla()
     ax.plot(*earth.pos,'o',scalex=False,scaley=False)
@@ -80,7 +68,7 @@ for i in range(200):
     ax.set(xlim=(-zoom,zoom), ylim=(-zoom,zoom))
     clear_output(wait = True)
     plt.pause(0.05)
-    timestep2(earth,sun,0.1)
+    timestep2(planets,0.1)
 # for _ in range(10):
 
 # print(earth.pos,sun.pos)
