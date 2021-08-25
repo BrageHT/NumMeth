@@ -28,7 +28,10 @@ class Planet:
 
 
 def merge(planet,r,list_mask):
-    
+    """
+    Calculating distance between planets and merging if close enough,
+    and setting (highest) mask index of planet to zero.
+    """
     close, _ = np.where(np.abs(r - 1/2) < 1/2) # planet a & b within 1 unit distance
     if len(close) != 0: # and close.any() != list_except.any():
         # print(close)
@@ -44,7 +47,8 @@ def merge(planet,r,list_mask):
         planet[close[1]].vel = 0
         # print(*close)
         list_mask[close[1]] = 0
-        print(f"Planets {close[0]} and  {close[1]} merged! ")
+        # print(f"Planets {close[0]} and  {close[1]} merged! ")
+        # print([planet[close[0]].mass, timestep(planets,0.1,first_run)])
         
 
 def timestep(planet,dt,first_run):
@@ -53,6 +57,7 @@ def timestep(planet,dt,first_run):
     """
     
     # Initializing and creating matricies before the first timestep
+    
     if first_run:
         N = len(planet)
         r = np.zeros((N,N)) # r from low to high planet no.
@@ -63,8 +68,8 @@ def timestep(planet,dt,first_run):
         a = np.zeros((2,N))
         first_run = False
         
-        global list_mask
-        list_mask = np.ones(N)
+        # global list_mask
+        # list_mask = np.ones(N)
         
     for i in range(N):
         if list_mask[i]:
@@ -81,17 +86,15 @@ def timestep(planet,dt,first_run):
                         
                         a[:,i] += -planet[j].mass/r[i,j]**2 * np.array( [ cos_theta[i,j], sin_theta[i,j] ] )
 
-    # print(first_run)
+
     for i in range(N):
         if list_mask[i]:
             planet[i].vel = a[:,i]*dt
             planet[i].pos += planet[i].vel
     
-    # print(list_except)
+
     merge(planet,r,list_mask)
-    
-    # print(planets[0].mass)
-    # print(planet[2].pos)
+
 
         
 
@@ -103,17 +106,25 @@ plt.close("all")
 sun = Planet(1,(2.0,2.0),(0.02,0.0))
 earth = Planet(1,(0.0,0.0),(0.0,-0.05)) #1/333000
 other = Planet(1,(5.0,5.0), (0.0,0.05))
-other2 = Planet(1, (-8.0,3.0),(0.06,0.0))
+other2 = Planet(1, (-4.0,3.0),(0.06,0.0))
 
 planets = [earth,sun,other,other2]
 # planets = [earth,sun]
+
 fig = plt.figure(0)
 ax = fig.add_subplot(1,1,1)
 zoom = 15
+
+
 first_run = True
+list_mask = np.ones(len(planets))
+
+
 for i in range(300):
+    
     timestep(planets,0.1,first_run)
     ax.cla()
+    
     for j in range(len(planets)):
         if list_mask[j]:
             ax.plot(*planets[j].pos,'o',scalex=False,scaley=False)
