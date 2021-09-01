@@ -44,10 +44,10 @@ def accretion_disc_dirichlet(N, x_start, x_end, dt, v, ite):
     x = np.linspace(x_start, x_end, N)
     dx = x[1] - x[0]
     
-    # ux_init = u.flatten()
-    # uy_init = z.flatten()
-    ux_init = np.zeros(N**2)
-    uy_init = np.zeros(N**2)
+    ux_init = u.flatten()
+    uy_init = z.flatten()
+    # ux_init = np.zeros(N**2)
+    # uy_init = np.zeros(N**2)
     
     r = np.zeros((N,N))
     for i in range(N):
@@ -252,21 +252,21 @@ for i in t:
     
 #%% 
 
-def lmao(N, dx, dt):
+def lmao(N, dx, dt, r_max):
+    x, y = np.meshgrid(np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1))
+    r = np.sqrt(x**2+y**2)
+    
+    crit = np.where(r.flatten() > r_max)
     
     L = laplacian(N, dx)
     A2 = L*dt
-    
-    # A2[0:N] = 0
-    # A2[-N:] = 0
-    # for i in range(N):
-    #     A2[i, i] = 1
-    #     A2[-(i+1), -(i+1)] = 1
-    # for i in range(N-2):
-    #     A2[(i+1)*N] = 0
-    #     A2[(i+1)*N, (i+1)*N] = 1
-    #     A2[(i+2)*N-1] = 0
-    #     A2[(i+2)*N-1, (i+2)*N-1] = 1
+    try:
+        for i in crit:
+            A2[i] = 0
+            A2[i,i-1] = -0.5/dx
+            A2[i,i+1] = 0.5/dx
+    except:
+        pass
     
     A2[0:N] = 0
     A2[-N:] = 0
@@ -289,20 +289,20 @@ def lmao(N, dx, dt):
         A2[(i+2)*N-1, (i+2)*N-2] = -2/dx
         A2[(i+2)*N-1, (i+2)*N-3] = 0.5/dx
     
-    return A2
+    return r
 
-A = lmao(3, 1, 1)
+A = lmao(11, 1, 1, 0.5)
 
 #%%
 
-def accretion_disc_neumann(N, x_start, x_end, dt, v, ite):
+def accretion_disc_neumann(N, x_start, x_end, dt, v, ite, r_max):
     x = np.linspace(x_start, x_end, N)
     dx = x[1] - x[0]
     
-    ux_init = u.flatten()
-    uy_init = z.flatten()
-    # ux_init = np.zeros(N**2)
-    # uy_init = np.zeros(N**2)
+    # ux_init = u.flatten()
+    # uy_init = z.flatten()
+    ux_init = np.zeros(N**2)
+    uy_init = np.zeros(N**2)
     
     r = np.zeros((N,N))
     for i in range(N):
@@ -383,6 +383,17 @@ def accretion_disc_neumann(N, x_start, x_end, dt, v, ite):
     
     A2 = L*dt
     
+    crit = np.where(r.flatten() > r_max)
+    
+    # Max radius boundaries
+    try:
+        for i in crit:
+            A2[i] = 0
+            A2[i,i] = -1/dx
+            A2[i,i+1] = 1/dx
+    except:
+        pass
+    
     A2[0:N] = 0
     A2[-N:] = 0
     for i in range(N):
@@ -414,8 +425,8 @@ def accretion_disc_neumann(N, x_start, x_end, dt, v, ite):
         A2[(i+2)*N-1, (i+2)*N-1] = 1.5/dx
         A2[(i+2)*N-1, (i+2)*N-2] = -2/dx
         A2[(i+2)*N-1, (i+2)*N-3] = 0.5/dx
-    # A2[N//2] = 0
-    # A2[N//2, N//2] = 1
+    A2[N**2//2] = 0
+    A2[N**2//2, N**2//2] = 1
     
     inv_A1 = np.linalg.inv(A1)
     inv_A2 = np.linalg.inv(A2)
@@ -437,12 +448,19 @@ def accretion_disc_neumann(N, x_start, x_end, dt, v, ite):
         
         pres_term = del_x @ adv_x + del_x @ adv_y
         
+        
+        # Max radius boundary conditions
+        for n in crit:
+            pres_term[n] = 0
+        
+            
+        
         pres_term[0:N] = 0
         pres_term[-N:] = 0
         for j in range(N-2):
             pres_term[(j+1)*N] = 0
             pres_term[(j+2)*N-1] = 0
-        # pres_term[N**2//2] = 1
+        pres_term[N**2//2] = 1
         
         
         p = inv_A2 @ pres_term
@@ -459,7 +477,7 @@ def accretion_disc_neumann(N, x_start, x_end, dt, v, ite):
 
 #%%
 
-trial2 = accretion_disc_neumann(71, -10, 10, 0.001, 0.2, 50)
+trial2 = accretion_disc_neumann(71, -10, 10, 0.001, 0.2, 50, 8)
 
 #%%
 
@@ -467,7 +485,7 @@ plt.close('all')
 fig = plt.figure(0)
 ax = fig.add_subplot(1,1,1)
 plt.plot(0,0, 'o')
-t = range(len(trial[1]))
+t = range(len(trial2[1]))
 
 for i in t:
     ax.cla()
@@ -491,13 +509,25 @@ for i in t1:
     plt.pause(0.1)
     
 #%%
+
 plt.close('all')
 fig2 = plt.figure(2)
 ax2 = fig2.add_subplot(1,1,1)
 
 for i in t:
     ax2.cla()
-    ax2.streamplot(xx,yy,trial[1][i],trial[2][i])
+    ax2.streamplot(xx,yy,trial2[1][i],trial2[2][i])
     clear_output(wait = True)
     plt.pause(0.1)
-    
+
+#%%
+import os
+try:
+    os.mkdir("stream")
+except:
+    pass
+
+for i in tqdm(range(len(trial2[1]))):
+    plt.clf()
+    plt.streamplot(xx,yy,trial2[1][i],trial2[2][i])
+    plt.savefig(f"stream/{i:05d}.png")
